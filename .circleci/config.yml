@@ -414,68 +414,68 @@ jobs:
       - run: rm packaging/docker/grafana-latest.linux-*.tar.gz
 
 
-  deploy-master:
-    docker:
-      - image: grafana/grafana-ci-deploy:1.2.2
-    steps:
-      - attach_workspace:
-          at: .
-      - run:
-          name: deploy to s3
-          command: |
-            # Also
-            cp dist/grafana-latest.linux-x64.tar.gz dist/grafana-master-$(echo "${CIRCLE_SHA1}" | cut -b1-7).linux-x64.tar.gz
-            aws s3 sync ./dist s3://$BUCKET_NAME/master
-      - run:
-          name: Trigger Windows build
-          command: './scripts/trigger_windows_build.sh ${APPVEYOR_TOKEN} ${CIRCLE_SHA1} master'
-      - run:
-          name: gcp credentials
-          command: 'echo ${GCP_GRAFANA_UPLOAD_KEY} > /tmp/gcpkey.json'
-      - run:
-          name: sign in to gcp
-          command: '/opt/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file=/tmp/gcpkey.json'
-      - run:
-          name: deploy to gcp
-          command: '/opt/google-cloud-sdk/bin/gsutil cp ./dist/* gs://$GCP_BUCKET_NAME/oss/master'
-      - run:
-          name: Publish to Grafana.com
-          command: |
-            rm dist/grafana-master-$(echo "${CIRCLE_SHA1}" | cut -b1-7).linux-x64.tar.gz
-            rm dist/*latest*
-            cd dist && ../scripts/build/release_publisher/release_publisher -apikey ${GRAFANA_COM_API_KEY} -version "v$(cat grafana.version)" --nightly
+  # deploy-master:
+  #   docker:
+  #     - image: grafana/grafana-ci-deploy:1.2.2
+  #   steps:
+  #     - attach_workspace:
+  #         at: .
+  #     - run:
+  #         name: deploy to s3
+  #         command: |
+  #           # Also
+  #           cp dist/grafana-latest.linux-x64.tar.gz dist/grafana-master-$(echo "${CIRCLE_SHA1}" | cut -b1-7).linux-x64.tar.gz
+  #           aws s3 sync ./dist s3://$BUCKET_NAME/master
+  #     - run:
+  #         name: Trigger Windows build
+  #         command: './scripts/trigger_windows_build.sh ${APPVEYOR_TOKEN} ${CIRCLE_SHA1} master'
+  #     - run:
+  #         name: gcp credentials
+  #         command: 'echo ${GCP_GRAFANA_UPLOAD_KEY} > /tmp/gcpkey.json'
+  #     - run:
+  #         name: sign in to gcp
+  #         command: '/opt/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file=/tmp/gcpkey.json'
+  #     - run:
+  #         name: deploy to gcp
+  #         command: '/opt/google-cloud-sdk/bin/gsutil cp ./dist/* gs://$GCP_BUCKET_NAME/oss/master'
+  #     - run:
+  #         name: Publish to Grafana.com
+  #         command: |
+  #           rm dist/grafana-master-$(echo "${CIRCLE_SHA1}" | cut -b1-7).linux-x64.tar.gz
+  #           rm dist/*latest*
+  #           cd dist && ../scripts/build/release_publisher/release_publisher -apikey ${GRAFANA_COM_API_KEY} -version "v$(cat grafana.version)" --nightly
 
-  deploy-release:
-    docker:
-      - image: grafana/grafana-ci-deploy:1.2.2
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - run:
-          name: deploy to s3
-          command: 'aws s3 sync ./dist s3://$BUCKET_NAME/release'
-      - run:
-          name: gcp credentials
-          command: 'echo ${GCP_GRAFANA_UPLOAD_KEY} > /tmp/gcpkey.json'
-      - run:
-          name: sign in to gcp
-          command: '/opt/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file=/tmp/gcpkey.json'
-      - run:
-          name: deploy to gcp
-          command: '/opt/google-cloud-sdk/bin/gsutil cp ./dist/* gs://$GCP_BUCKET_NAME/oss/release'
-      - run:
-          name: Deploy to Grafana.com
-          command: './scripts/build/publish.sh'
-      - run:
-          name: Load GPG private key
-          command: './scripts/build/load-signing-key.sh'
-      - run:
-          name: Update Debian repository
-          command: './scripts/build/update_repo/update-deb.sh "oss" "$GPG_KEY_PASSWORD" "$CIRCLE_TAG" "dist"'
-      - run:
-          name: Update RPM repository
-          command: './scripts/build/update_repo/update-rpm.sh "oss" "$GPG_KEY_PASSWORD" "$CIRCLE_TAG" "dist"'
+  # deploy-release:
+  #   docker:
+  #     - image: grafana/grafana-ci-deploy:1.2.2
+  #   steps:
+  #     - checkout
+  #     - attach_workspace:
+  #         at: .
+  #     - run:
+  #         name: deploy to s3
+  #         command: 'aws s3 sync ./dist s3://$BUCKET_NAME/release'
+  #     - run:
+  #         name: gcp credentials
+  #         command: 'echo ${GCP_GRAFANA_UPLOAD_KEY} > /tmp/gcpkey.json'
+  #     - run:
+  #         name: sign in to gcp
+  #         command: '/opt/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file=/tmp/gcpkey.json'
+  #     - run:
+  #         name: deploy to gcp
+  #         command: '/opt/google-cloud-sdk/bin/gsutil cp ./dist/* gs://$GCP_BUCKET_NAME/oss/release'
+  #     - run:
+  #         name: Deploy to Grafana.com
+  #         command: './scripts/build/publish.sh'
+  #     - run:
+  #         name: Load GPG private key
+  #         command: './scripts/build/load-signing-key.sh'
+  #     - run:
+  #         name: Update Debian repository
+  #         command: './scripts/build/update_repo/update-deb.sh "oss" "$GPG_KEY_PASSWORD" "$CIRCLE_TAG" "dist"'
+  #     - run:
+  #         name: Update RPM repository
+  #         command: './scripts/build/update_repo/update-rpm.sh "oss" "$GPG_KEY_PASSWORD" "$CIRCLE_TAG" "dist"'
 
   build-oss-msi:
     docker:
@@ -555,18 +555,18 @@ workflows:
           filters: *filter-only-master
       - postgres-integration-test:
           filters: *filter-only-master
-      - deploy-master:
-          requires:
-            - build-all
-            - test-backend
-            - test-frontend
-            - codespell
-            - lint-go
-            - shellcheck
-            - mysql-integration-test
-            - postgres-integration-test
-            - build-oss-msi
-          filters: *filter-only-master
+      # - deploy-master:
+      #     requires:
+      #       - build-all
+      #       - test-backend
+      #       - test-frontend
+      #       - codespell
+      #       - lint-go
+      #       - shellcheck
+      #       - mysql-integration-test
+      #       - postgres-integration-test
+      #       - build-oss-msi
+      #     filters: *filter-only-master
       - grafana-docker-master:
           requires:
             - build-all
@@ -620,18 +620,18 @@ workflows:
           filters: *filter-only-release
       - postgres-integration-test:
           filters: *filter-only-release
-      - deploy-release:
-          requires:
-            - build-all
-            - test-backend
-            - test-frontend
-            - codespell
-            - lint-go
-            - shellcheck
-            - mysql-integration-test
-            - postgres-integration-test
-            - build-oss-msi
-          filters: *filter-only-release
+      # - deploy-release:
+      #     requires:
+      #       - build-all
+      #       - test-backend
+      #       - test-frontend
+      #       - codespell
+      #       - lint-go
+      #       - shellcheck
+      #       - mysql-integration-test
+      #       - postgres-integration-test
+      #       - build-oss-msi
+      #     filters: *filter-only-release
       - grafana-docker-release:
           requires:
             - build-all
